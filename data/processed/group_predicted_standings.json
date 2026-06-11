@@ -1,0 +1,74 @@
+{
+  "A": {
+    "1": "Mexico",
+    "2": "South Korea",
+    "3": "Czech Republic",
+    "4": "South Africa"
+  },
+  "B": {
+    "1": "Canada",
+    "2": "Switzerland",
+    "3": "Bosnia and Herzegovina",
+    "4": "Qatar"
+  },
+  "C": {
+    "1": "Brazil",
+    "2": "Morocco",
+    "3": "Scotland",
+    "4": "Haiti"
+  },
+  "D": {
+    "1": "Paraguay",
+    "2": "Australia",
+    "3": "Turkey",
+    "4": "United States"
+  },
+  "E": {
+    "1": "Ecuador",
+    "2": "Germany",
+    "3": "Ivory Coast",
+    "4": "Cura\u00e7ao"
+  },
+  "F": {
+    "1": "Japan",
+    "2": "Netherlands",
+    "3": "Tunisia",
+    "4": "Sweden"
+  },
+  "G": {
+    "1": "Iran",
+    "2": "New Zealand",
+    "3": "Egypt",
+    "4": "Belgium"
+  },
+  "H": {
+    "1": "Spain",
+    "2": "Uruguay",
+    "3": "Saudi Arabia",
+    "4": "Cape Verde"
+  },
+  "I": {
+    "1": "France",
+    "2": "Senegal",
+    "3": "Norway",
+    "4": "Iraq"
+  },
+  "J": {
+    "1": "Argentina",
+    "2": "Austria",
+    "3": "Jordan",
+    "4": "Algeria"
+  },
+  "K": {
+    "1": "Colombia",
+    "2": "Portugal",
+    "3": "Uzbekistan",
+    "4": "DR Congo"
+  },
+  "L": {
+    "1": "England",
+    "2": "Croatia",
+    "3": "Panama",
+    "4": "Ghana"
+  }
+}
