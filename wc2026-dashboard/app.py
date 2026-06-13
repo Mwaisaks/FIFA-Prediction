@@ -5,6 +5,7 @@ import statsmodels.api as sm
 from scipy.stats import poisson
 from collections import defaultdict
 import urllib.request, io, warnings
+import datetime
 warnings.filterwarnings('ignore')
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -111,6 +112,56 @@ def load_model():
     model_away = sm.GLM(train['away_score'], X_train, family=sm.families.Poisson()).fit()
 
     return model_home, model_away, feature_columns, team_to_elo, team_to_conf, build_X
+
+
+# ── Section A: Today's fixtures ──────────────────────────────────────────────
+today = datetime.date.today()
+group_fixtures = pd.read_csv('data/group_fixtures.csv')
+group_fixtures['date'] = pd.to_datetime(group_fixtures['date_utc']).dt.date
+
+todays_games = group_fixtures[group_fixtures['date'] == today]
+
+# Fallback to tomorrow if nothing today
+if todays_games.empty:
+    tomorrow = today + datetime.timedelta(days=1)
+    todays_games = group_fixtures[group_fixtures['date'] == tomorrow]
+    label = f"🗓️ No games today — here's tomorrow ({tomorrow.strftime('%d %b')})"
+else:
+    label = f"🗓️ Today's fixtures — {today.strftime('%d %B %Y')}"
+
+if not todays_games.empty:
+    st.markdown(f"### {label}")
+    for _, fixture in todays_games.iterrows():
+        h = resolve(fixture['home_team'])
+        a = resolve(fixture['away_team'])
+        p = predict(h, a, model_home, model_away, feature_columns, team_to_elo, team_to_conf, build_X)
+
+        with st.container(border=True):
+            col1, col2, col3 = st.columns([3, 1, 3])
+            with col1:
+                st.markdown(f"**{fixture['home_team']}**")
+                st.caption(f"Elo {p['h_elo']}")
+            with col2:
+                st.markdown(
+                    f"<div style='text-align:center;font-size:1.4rem;font-weight:600;"
+                    f"padding-top:4px'>{p['score']}</div>",
+                    unsafe_allow_html=True
+                )
+                st.caption(
+                    f"<div style='text-align:center'>{fixture.get('venue','')}</div>",
+                    unsafe_allow_html=True
+                )
+            with col3:
+                st.markdown(f"**{fixture['away_team']}**")
+                st.caption(f"Elo {p['a_elo']}")
+
+            w1, w2, w3 = st.columns(3)
+            w1.metric(f"{h} win", f"{p['hw']}%")
+            w2.metric("Draw", f"{p['dp']}%")
+            w3.metric(f"{a} win", f"{p['aw']}%")
+
+st.divider()
+st.markdown("### 🔍 Or predict any match")
 
 # ── Prediction function ───────────────────────────────────────────────────────
 def predict(home, away, model_home, model_away, feature_columns, team_to_elo, team_to_conf, build_X):
