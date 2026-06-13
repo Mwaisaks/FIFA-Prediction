@@ -8,7 +8,7 @@ import urllib.request, io, warnings
 import datetime
 warnings.filterwarnings('ignore')
 
-# ── Page config ──────────────────────────────────────────────────────────────
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="WC 2026 Predictor",
     page_icon="⚽",
@@ -113,58 +113,11 @@ def load_model():
 
     return model_home, model_away, feature_columns, team_to_elo, team_to_conf, build_X
 
+# ── Unpack model (must happen before predict() and Section A) ─────────────────
+model_home, model_away, feature_columns, team_to_elo, team_to_conf, build_X = load_model()
 
-# ── Section A: Today's fixtures ──────────────────────────────────────────────
-today = datetime.date.today()
-group_fixtures = pd.read_csv('data/group_fixtures.csv')
-group_fixtures['date'] = pd.to_datetime(group_fixtures['date_utc']).dt.date
-
-todays_games = group_fixtures[group_fixtures['date'] == today]
-
-# Fallback to tomorrow if nothing today
-if todays_games.empty:
-    tomorrow = today + datetime.timedelta(days=1)
-    todays_games = group_fixtures[group_fixtures['date'] == tomorrow]
-    label = f"🗓️ No games today — here's tomorrow ({tomorrow.strftime('%d %b')})"
-else:
-    label = f"🗓️ Today's fixtures — {today.strftime('%d %B %Y')}"
-
-if not todays_games.empty:
-    st.markdown(f"### {label}")
-    for _, fixture in todays_games.iterrows():
-        h = resolve(fixture['home_team'])
-        a = resolve(fixture['away_team'])
-        p = predict(h, a, model_home, model_away, feature_columns, team_to_elo, team_to_conf, build_X)
-
-        with st.container(border=True):
-            col1, col2, col3 = st.columns([3, 1, 3])
-            with col1:
-                st.markdown(f"**{fixture['home_team']}**")
-                st.caption(f"Elo {p['h_elo']}")
-            with col2:
-                st.markdown(
-                    f"<div style='text-align:center;font-size:1.4rem;font-weight:600;"
-                    f"padding-top:4px'>{p['score']}</div>",
-                    unsafe_allow_html=True
-                )
-                st.caption(
-                    f"<div style='text-align:center'>{fixture.get('venue','')}</div>",
-                    unsafe_allow_html=True
-                )
-            with col3:
-                st.markdown(f"**{fixture['away_team']}**")
-                st.caption(f"Elo {p['a_elo']}")
-
-            w1, w2, w3 = st.columns(3)
-            w1.metric(f"{h} win", f"{p['hw']}%")
-            w2.metric("Draw", f"{p['dp']}%")
-            w3.metric(f"{a} win", f"{p['aw']}%")
-
-st.divider()
-st.markdown("### 🔍 Or predict any match")
-
-# ── Prediction function ───────────────────────────────────────────────────────
-def predict(home, away, model_home, model_away, feature_columns, team_to_elo, team_to_conf, build_X):
+# ── Prediction function (must be defined before Section A) ───────────────────
+def predict(home, away):
     home, away = resolve(home), resolve(away)
     h_elo = team_to_elo.get(home, 1500)
     a_elo = team_to_elo.get(away, 1500)
@@ -205,18 +158,67 @@ def predict(home, away, model_home, model_away, feature_columns, team_to_elo, te
         'h_elo': round(h_elo), 'a_elo': round(a_elo),
     }
 
-# ── UI ────────────────────────────────────────────────────────────────────────
+# ── Page title ────────────────────────────────────────────────────────────────
 st.title("⚽ FIFA World Cup 2026 Predictor")
 st.caption("Poisson GLM trained on 49,000+ international matches · Elo-rated team strength")
 
-with st.expander("How to use (quick guide)", expanded=True):
+# ── Section A: Today's fixtures ───────────────────────────────────────────────
+today = datetime.date.today()
+
+# FIX: use relative path so it works on Streamlit Cloud
+group_fixtures = pd.read_csv('data/group_fixtures.csv')
+group_fixtures['date'] = pd.to_datetime(group_fixtures['date_utc']).dt.date
+
+todays_games = group_fixtures[group_fixtures['date'] == today]
+
+if todays_games.empty:
+    tomorrow = today + datetime.timedelta(days=1)
+    todays_games = group_fixtures[group_fixtures['date'] == tomorrow]
+    label = f"No games today — here's tomorrow ({tomorrow.strftime('%d %b')})"
+else:
+    label = f"Today's fixtures — {today.strftime('%d %B %Y')}"
+
+if not todays_games.empty:
+    st.markdown(f"### 🗓️ {label}")
+    for _, fixture in todays_games.iterrows():
+        h = resolve(fixture['home_team'])
+        a = resolve(fixture['away_team'])
+        p = predict(h, a)
+
+        with st.container(border=True):
+            col1, col2, col3 = st.columns([3, 1, 3])
+            with col1:
+                st.markdown(f"**{fixture['home_team']}**")
+                st.caption(f"Elo {p['h_elo']}")
+            with col2:
+                st.markdown(
+                    f"<div style='text-align:center;font-size:1.4rem;font-weight:600;"
+                    f"padding-top:4px'>{p['score']}</div>",
+                    unsafe_allow_html=True
+                )
+                st.caption(
+                    f"<div style='text-align:center'>{fixture.get('venue', '')}</div>",
+                    unsafe_allow_html=True
+                )
+            with col3:
+                st.markdown(f"**{fixture['away_team']}**")
+                st.caption(f"Elo {p['a_elo']}")
+
+            w1, w2, w3 = st.columns(3)
+            w1.metric(f"{h} win", f"{p['hw']}%")
+            w2.metric("Draw", f"{p['dp']}%")
+            w3.metric(f"{a} win", f"{p['aw']}%")
+
+# ── Section B: Manual search ──────────────────────────────────────────────────
+st.divider()
+st.markdown("### 🔍 Or predict any match")
+
+with st.expander("How to use", expanded=False):
     st.markdown(
         "- Select Home and Away teams from the dropdowns.\n"
         "- If both teams are the same, you'll see a warning and the app will stop.\n"
         "- View predicted score, win probabilities, xG, and the top scorelines below."
     )
-
-model_home, model_away, feature_columns, team_to_elo, team_to_conf, build_X = load_model()
 
 ALL_TEAMS = sorted([
     'Algeria','Argentina','Australia','Austria','Bosnia and Herzegovina',
@@ -239,9 +241,8 @@ if home_team == away_team:
     st.warning("Pick two different teams.")
     st.stop()
 
-result = predict(home_team, away_team, model_home, model_away, feature_columns, team_to_elo, team_to_conf, build_X)
+result = predict(home_team, away_team)
 
-# Result header
 st.markdown("---")
 c1, c2, c3 = st.columns([2, 1, 2])
 with c1:
@@ -251,14 +252,12 @@ with c2:
 with c3:
     st.metric(result['away'], f"Elo {result['a_elo']}", delta_color="off")
 
-# Win probabilities
 st.markdown("#### Win probabilities")
 p1, p2, p3 = st.columns(3)
 p1.metric(f"{result['home']} win", f"{result['hw']}%")
 p2.metric("Draw", f"{result['dp']}%")
 p3.metric(f"{result['away']} win", f"{result['aw']}%")
 
-# xG + match stats
 st.markdown("#### Match stats")
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("xG " + result['home'], result['hxg'])
@@ -266,7 +265,6 @@ m2.metric("xG " + result['away'], result['axg'])
 m3.metric("Corners", result['corners'])
 m4.metric("Yellow cards", result['yellow_cards'])
 
-# Score probability grid (top 9 most likely)
 st.markdown("#### Most likely scorelines")
 grid_df = (
     pd.DataFrame(result['score_grid'].items(), columns=['Scoreline', 'Probability (%)'])
