@@ -36,11 +36,10 @@ export function FixturesSection() {
         </h3>
         <div className="mt-12 flex flex-col gap-4">
           {fixtures.map((fixture) => {
-            const homeTeam = getTeamById(fixture.homeTeamId)
-            const awayTeam = getTeamById(fixture.awayTeamId)
+            const homeTeam = getTeamById(fixture.homeTeamId) || { id: 0, name: fixture.homeTeamName || 'TBD', flag: '', strength: 0 }
+            const awayTeam = getTeamById(fixture.awayTeamId) || { id: 0, name: fixture.awayTeamName || 'TBD', flag: '', strength: 0 }
 
-            if (!homeTeam || !awayTeam) return null
-
+            // render even if teams aren't in the local teams list (fallback to names from CSV)
             return (
               <div
                 key={fixture.id}

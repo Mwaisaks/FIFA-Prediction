@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getFixtures } from '@/lib/fixtures'
+import { getFixtures } from '@/lib/fixtures.server'
 
 function serializeFixtures(fixtures: any[]) {
   return fixtures.map((f) => ({
